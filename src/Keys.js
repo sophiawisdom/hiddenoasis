@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
 
 export default ({pubkey, setpubkey, privkey, setprivkey}) => {
+    const [versionLocked, setVersionLocked] = useState(!!window.localStorage.versionLocked);
+
     const storageHandler = (pubkey, privkey) => {
         if (pubkey) { crypto.subtle.importKey("jwk", JSON.parse(pubkey), {"name": "RSA-OAEP", "hash": "SHA-512"}, true, ["encrypt"]).then(setpubkey); }
         if (privkey) { crypto.subtle.importKey("jwk", JSON.parse(privkey), {"name": "RSA-OAEP", "hash": "SHA-512"}, true, ["decrypt"]).then(setprivkey); }
@@ -30,6 +32,17 @@ export default ({pubkey, setpubkey, privkey, setprivkey}) => {
         return () => window.removeEventListener("storage", listener);
     }, [setpubkey, setprivkey]);
 
+    useEffect(() => {
+        window.addEventListener("storage", event => {
+            if (event.key === "versionLocked") {
+                if (!event.newValue && event.oldValue) { // we're newly disabling versionLocked
+                    window.location.reload();
+                }
+                setVersionLocked(!!event.newValue);
+            }
+        });
+    }, []);
+
     const pubkeyDisplay = window.localStorage.pubkey != null ? 
         <div style={{"display": "inline-block"}} onClick={() => navigator.clipboard.writeText(window.localStorage.pubkey)}>
             Pubkey: {JSON.parse(window.localStorage.pubkey).n.slice(0, 10)}
@@ -51,9 +64,9 @@ export default ({pubkey, setpubkey, privkey, setprivkey}) => {
     }
 
     return <div style={{"backgroundColor": "#3ea363"}}>
-        <div>
+        <div style={{"display": "inline-block", "paddingRight": "50px", "paddingLeft": "20px"}}>
             {pubkeyDisplay}
-            <button onClick={() => {
+            <button style={{"paddingLeft": "10px"}} onClick={() => {
                 navigator.clipboard.readText().then(data => {
                     console.log("data is", data)
                     try {
@@ -66,9 +79,9 @@ export default ({pubkey, setpubkey, privkey, setprivkey}) => {
                 })
             }}> import pubkey </button>
         </div>
-        <div>
+        <div style={{"display": "inline-block"}}>
             {privkeyDisplay}
-            <button onClick={() => {
+            <button style={{"paddingLeft": "10px"}} onClick={() => {
                 navigator.clipboard.readText().then(data => {
                     try {
                         storageHandler(null, data);
@@ -80,6 +93,19 @@ export default ({pubkey, setpubkey, privkey, setprivkey}) => {
             }}> import privkey </button>
         </div>
         {warning}
-        <button onClick={generatekeys}> Generate new keys </button>
+        <button onClick={generatekeys} style={{"paddingLeft": "100px"}} > Generate new keys </button>
+
+        <button style={{"paddingLeft": "30px"}} onClick={() => {
+            setVersionLocked(!versionLocked);
+            navigator.serviceWorker.getRegistration().then(registration => {
+                registration.active.postMessage(!versionLocked);
+            });
+            if (versionLocked) { // removing version lock
+                window.localStorage.removeItem("versionLocked");
+                window.location.reload(); // reload page to get new site
+            } else { // putting lock in place
+                window.localStorage.setItem("versionLocked", "true");
+            }
+        }}> {versionLocked ? "version locked" : "on latest version"} </button>
       </div>
 }

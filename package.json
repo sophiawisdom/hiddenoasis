@@ -16,6 +16,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "deploy": "react-scripts build; npx wrangler pages deploy build --project-name hiddenoasis",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

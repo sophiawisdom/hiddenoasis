@@ -19,7 +19,7 @@ router.post('/api/write', async (request, env) => {
 
 	let post = JSON.parse(await env.posts.get("post"));
 
-	let newpost = {id: post.length, content: content.content, children: []};
+	let newpost = {id: post.length, content: content.content, children: [], timestamp: (new Date()).getTime()};
     if ("pubkey" in content) {
         newpost.pubkey = content.pubkey;
 	}
@@ -51,7 +51,7 @@ router.post('/api/write_child/:id', async (request, env) => {
 		return new Response("id too big...", options)
 	}
 
-	let child_post = {id: post[id].children.length, content: content.content};
+	let child_post = {id: post[id].children.length, pubkey: content.pubkey, content: content.content, timestamp: (new Date()).getTime()};
 	if ("pubkey" in content) {
 		child_post.pubkey = content.pubkey
 	}
