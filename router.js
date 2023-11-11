@@ -3,6 +3,7 @@ import { Router } from 'itty-router';
 // now let's create a router (note the lack of "new")
 const router = Router();
 
+// For CORS
 const options = {
 	headers: {
 		"content-type": "application/json",
@@ -12,56 +13,32 @@ const options = {
 	}
 };
 
-router.get('/api/read', async (request, env) => new Response(await env.posts.get("post"), options));
+router.get('/api/read', async (request, env) => new Response(await env.posts.get("posts"), options));
 
 router.post('/api/write', async (request, env) => {
-	const content = await request.json();
+	const content = await request.text();
+	console.log("content is: ", content);
 
-	let post = JSON.parse(await env.posts.get("post"));
+	let posts = JSON.parse(await env.posts.get("posts"));
 
-	let newpost = {id: post.length, content: content.content, children: [], timestamp: (new Date()).getTime()};
-    if ("pubkey" in content) {
-        newpost.pubkey = content.pubkey;
-	}
-	post.push(newpost);
+	let newpost = {
+		// server parameters
+		id: posts.length,
+		timestamp: (new Date()).getTime(),
+		// client parameter
+		content
+	};
+	posts.unshift(newpost);
 
-	await env.posts.put("post", JSON.stringify(post));
+	let newposts = JSON.stringify(posts);
+	await env.posts.put("posts", newposts);
 
-	return new Response(JSON.stringify(post), options);
+	return new Response(newposts, options);
 });
 
+// For CORS
 router.options("/api/write", () => {
 	return new Response("", options);
-});
-
-router.options("/api/write_child/:id", () => {
-	return new Response("", options);
-});
-
-router.post('/api/write_child/:id', async (request, env) => {
-	const content = await request.json();
-
-	const id = parseInt(request.params.id);
-	if (!Number.isInteger(id)) {
-		return new Response("id not a number!", options);
-	}
-
-	let post = JSON.parse(await env.posts.get("post"));
-	if (id >= post.length) {
-		return new Response("id too big...", options)
-	}
-
-	let child_post = {id: post[id].children.length, pubkey: content.pubkey, content: content.content, timestamp: (new Date()).getTime()};
-	if ("pubkey" in content) {
-		child_post.pubkey = content.pubkey
-	}
-	post[id].children.push(child_post);
-
-	console.log("new post", post);
-
-	await env.posts.put("post", JSON.stringify(post));
-
-	return new Response(JSON.stringify(post), options);
 });
 
 // 404 for everything else

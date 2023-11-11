@@ -4,6 +4,7 @@ const Post = props => {
     const [replyContent, setReply] = useState('');
     const [hideEncrypted, setHideEncrypted] = useState(true);
     const [pubkey, setPubkey] = useState(null);
+    const [expandPubkey, setExpandPubkey] = useState(false);
 
     // long base64 strings should have no spaces and should be really long -- filter those out. TOCONSIDER: this might break links?
     const childrenWeShouldDisplay = props.children.filter(child => !hideEncrypted || child.content.split(" ")[0].length < 200);
@@ -14,14 +15,14 @@ const Post = props => {
     const onEnterPress = e => {
         if(e.keyCode === 13 && e.shiftKey === false) {
             e.preventDefault();
-            props.reply(replyContent, pubkey);
+            props.reply(replyContent, pubkey, () => setReply(""));
         }
     }
 
     return <div style={{"paddingLeft": "100px", "paddingRight": "100px", "paddingBottom": "10px", "backgroundColor": "#fc97e2", "borderTop": "solid 2px white"}}>
         <div style={{"fontSize": "12px", "color": "grey"}}>
             {new Date(props.timestamp).toLocaleString()}
-            <span onClick={() => setPubkey(props.pubkey)}> {JSON.parse(props.pubkey).n.slice(0, 10)} </span>
+            <span onClick={() => setPubkey(props.pubkey)}> {expandPubkey ? JSON.parse(props.pubkey).n : JSON.parse(props.pubkey).n.slice(0, 10)} </span>
         </div>
         <div style={{"fontSize": "25px"}}>
             {props.content}

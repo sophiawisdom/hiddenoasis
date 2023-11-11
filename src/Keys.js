@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react"
 
-export default ({pubkey, setpubkey, privkey, setprivkey}) => {
+export default ({pubkey, setpubkey, privkey, setprivkey, numHiddenPosts}) => {
     const [versionLocked, setVersionLocked] = useState(!!window.localStorage.versionLocked);
 
     const storageHandler = (pubkey, privkey) => {
-        if (pubkey) { crypto.subtle.importKey("jwk", JSON.parse(pubkey), {"name": "RSA-OAEP", "hash": "SHA-512"}, true, ["encrypt"]).then(setpubkey); }
-        if (privkey) { crypto.subtle.importKey("jwk", JSON.parse(privkey), {"name": "RSA-OAEP", "hash": "SHA-512"}, true, ["decrypt"]).then(setprivkey); }
+        if (pubkey) { crypto.subtle.importKey("jwk", JSON.parse(pubkey), {"name": "RSA-OAEP", "hash": "SHA-512"}, true, ["encrypt", "wrapKey"]).then(setpubkey); }
+        if (privkey) { crypto.subtle.importKey("jwk", JSON.parse(privkey), {"name": "RSA-OAEP", "hash": "SHA-512"}, true, ["decrypt", "unwrapKey"]).then(setprivkey); }
     };
     
     const generatekeys = async () => {
-        const keys = await crypto.subtle.generateKey({"name": "RSA-OAEP", "modulusLength": 2048, "publicExponent": new Uint8Array([0x01, 0x00, 0x01]), "hash": "SHA-512"}, true, ["encrypt", "decrypt"]);
+        const keys = await crypto.subtle.generateKey({"name": "RSA-OAEP", "modulusLength": 2048, "publicExponent": new Uint8Array([0x01, 0x00, 0x01]), "hash": "SHA-512"}, true, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]);
 
         const pub = await crypto.subtle.exportKey("jwk", keys.publicKey);
         window.localStorage.pubkey = JSON.stringify(pub);
@@ -25,6 +25,7 @@ export default ({pubkey, setpubkey, privkey, setprivkey}) => {
         if (!window.localStorage.hasVisitedBefore) {
             window.localStorage.hasVisitedBefore = true;
             generatekeys();
+            window.localStorage.pastReplies = "{}";
         }
         const listener = () => storageHandler(window.localStorage.pubkey, window.localStorage.privkey);
         listener();
@@ -94,6 +95,8 @@ export default ({pubkey, setpubkey, privkey, setprivkey}) => {
         </div>
         {warning}
         <button onClick={generatekeys} style={{"paddingLeft": "100px"}} > Generate new keys </button>
+
+        {numHiddenPosts > 0 ? <div style={{"display": "inline-block", "paddingLeft": "10px"}}> {numHiddenPosts} hidden {numHiddenPosts == 1 ? "post" : "posts"} </div> : null }
 
         <button style={{"paddingLeft": "30px"}} onClick={() => {
             setVersionLocked(!versionLocked);
